@@ -79,7 +79,7 @@ node index.js
       let r = '';
       while (n > 0) { r = A[Number(n % 58n)] + r; n /= 58n; }
       
-      console.log("🔑ae SESSION PRIVATE KEY:");
+      console.log("🔑 SESSION PRIVATE KEY:");
       console.log(r);
       
       let pn = BigInt('0x' + [...pubBytes].map(b => b.toString(16).padStart(2,'0')).join(''));
@@ -93,6 +93,48 @@ node index.js
 
 4. Copy the **SESSION PRIVATE KEY** output
 5. Paste into `SESSION_KEY_B58` in index.js
+
+**Alternative: Capture New Session Key**
+
+If the above script fails with "key is not extractable", run this BEFORE logging in:
+
+```javascript
+(function() {
+    const originalGenerateKey = crypto.subtle.generateKey;
+    crypto.subtle.generateKey = async function(algorithm, extractable, keyUsages) {
+        console.log("🔑 FOGO INTERCEPTOR: Forcing extractable: true");
+        return originalGenerateKey.call(crypto.subtle, algorithm, true, keyUsages);
+    };
+    console.log("✅ Interceptor active. Please login or re-establish session now.");
+})();
+```
+
+After logging in, run this to capture the session key:
+
+```javascript
+const originalGenerateKey = crypto.subtle.generateKey;
+crypto.subtle.generateKey = async function(...args) {
+    if (args[1] && args[1].name === 'Ed25519') {
+        args[2] = true;
+    }
+    const result = await originalGenerateKey.apply(this, args);
+    
+    if (result.privateKey && result.publicKey) {
+        try {
+            const privRaw = await crypto.subtle.exportKey('pkcs8', result.privateKey);
+            const pubRaw = await crypto.subtle.exportKey('raw', result.publicKey);
+            console.log('🔑 SESSION KEY CAPTURED!');
+            console.log('Private (pkcs8):', btoa(String.fromCharCode(...new Uint8Array(privRaw))));
+            console.log('Public (raw):', btoa(String.fromCharCode(...new Uint8Array(pubRaw))));
+        } catch(e) {}
+    }
+    return result;
+}
+
+console.log('✅ Session key capture ready. Now sign a new session.');
+```
+
+Then use `convert-session.js` to convert the captured keys to base58 format.
 
 ### How to Get TX_TEMPLATE_B64
 
@@ -112,7 +154,7 @@ window.fetch = async (...args) => {
   if (args[0]?.includes?.('sponsor_and_send')) {
     const body = JSON.parse(args[1]?.body || '{}');
     if (body.transaction) {
-      console.log("🔑ae TX_TEMPLATE_B64:");
+      console.log("🔑 TX_TEMPLATE_B64:");
       console.log(body.transaction);
     }
   }
