@@ -109,7 +109,7 @@ If the above script fails with "key is not extractable", run this BEFORE logging
 })();
 ```
 
-After logging in, run this to capture the session key:
+run this to capture the session key and then Click Login:
 
 ```javascript
 const originalGenerateKey = crypto.subtle.generateKey;
@@ -134,7 +134,7 @@ crypto.subtle.generateKey = async function(...args) {
 console.log('✅ Session key capture ready. Now sign a new session.');
 ```
 
-Then use `convert-session.js` to convert the captured keys to base58 format.
+then use `convert-session.js` to convert the captured keys to base58 format.
 
 ### How to Get TX_TEMPLATE_B64
 
