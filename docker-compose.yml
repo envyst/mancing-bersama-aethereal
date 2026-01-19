@@ -6,4 +6,5 @@ services:
     working_dir: /app
     volumes:
       - .:/app
+    restart: unless-stopped
     command: node index.js
